@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "inetum-viagens-tab-app",
+  "packageName": "com.inetum.viagens",
+  "developer": {
+    "name": "INETUM Portugal",
+    "websiteUrl": "https://inetum.com",
+    "privacyUrl": "https://inetum.com/privacy",
+    "termsOfUseUrl": "https://inetum.com/terms"
+  },
+  "name": {
+    "short": "INETUM Viagens",
+    "full": "INETUM Viagens Lisboa ↔ Porto"
+  },
+  "description": {
+    "short": "Coordenação de viagens semanais entre Lisboa e Porto",
+    "full": "Ferramenta para consultores INETUM coordenarem viagens semanais Lisboa ↔ Porto, incluindo partilha de boleia (mínimo 3 pessoas para carro), horários, alojamento no Porto e notificações automáticas."
+  },
+  "icons": {
+    "color": "icon-color.png",
+    "outline": "icon-outline.png"
+  },
+  "accentColor": "#6366f1",
+  "staticTabs": [
+    {
+      "entityId": "viagens",
+      "name": "Viagens",
+      "contentUrl": "https://YOUR_APP_URL/",
+      "websiteUrl": "https://YOUR_APP_URL/",
+      "scopes": ["personal", "team"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://YOUR_APP_URL/config",
+      "canUpdateConfiguration": true,
+      "scopes": ["team", "groupChat"]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["YOUR_APP_DOMAIN"]
+}
