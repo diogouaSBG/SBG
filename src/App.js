@@ -369,11 +369,40 @@ export default function App() {
             <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 2 }}>Registar Viagem</div>
             <div style={{ fontSize: 13, color: "#3d4460", marginBottom: 22 }}>Semana de {monday.toLocaleDateString("pt-PT", { day: "2-digit", month: "long" })}</div>
 
+            {(trips[modal] || []).length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <Label>JUNTAR A VIAGEM EXISTENTE</Label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(trips[modal] || []).map(t => (
+                    <button key={t.id} onClick={() => setForm(p => ({
+                      ...p,
+                      departDay: t.departDay,
+                      departTime: t.departTime,
+                      returnDay: t.returnDay,
+                      returnTime: t.returnTime,
+                      portoType: t.portoType,
+                      portoOther: t.portoOther,
+                    }))} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      background: form.departTime === t.departTime && form.returnDay === t.returnDay ? "#6366f118" : "#161928",
+                      border: `1px solid ${form.departTime === t.departTime && form.returnDay === t.returnDay ? "#6366f1" : "#1e2235"}`,
+                      borderRadius: 10, padding: "10px 12px", cursor: "pointer", textAlign: "left",
+                    }}>
+                      <Avatar name={t.name} size={28} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#dde1f0" }}>{t.name}</div>
+                        <div style={{ fontSize: 11, color: "#3d4460" }}>🕐 {t.departTime} · 🔄 {t.returnDay} {t.returnTime} · {t.portoLocation}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: "#3d4460", marginTop: 8, marginBottom: 4 }}>Ou preenche manualmente abaixo 👇</div>
+                <div style={{ height: 1, background: "#1e2235", marginBottom: 16 }} />
+              </div>
+            )}
+
             <Label>CONSULTOR</Label>
-            <select value={form.name} onChange={e => f("name", e.target.value)} style={{ ...sel, marginBottom: 14 }}>
-              <option value="">Seleciona o teu nome...</option>
-              {CONSULTANTS.map(c => <option key={c}>{c}</option>)}
-            </select>
+            <input placeholder="O teu nome..." value={form.name} onChange={e => f("name", e.target.value)} style={{ ...sel, marginBottom: 14 }} />
 
             <Label>ZONA DE PARTIDA EM LISBOA</Label>
             <input placeholder="Ex: Cascais, Sintra, Almada, Oriente…" value={form.zone} onChange={e => f("zone", e.target.value)} style={{ ...sel, marginBottom: 14 }} />
