@@ -47,6 +47,7 @@ const emptyForm = (day = "") => ({
   returnDay: "", returnTime: "",
   portoType: "holiday",
   portoOther: "",
+  transportMode: "carro",
 });
 
 const getPortoLabel = (form) => {
@@ -146,6 +147,7 @@ export default function App() {
           portoType: row.porto_type,
           portoOther: row.porto_other,
           portoLocation: row.porto_location,
+          transportMode: row.transport_mode || "carro",
         });
       });
       setTrips(grouped);
@@ -183,6 +185,7 @@ export default function App() {
       porto_other: form.portoOther,
       porto_location: portoLocation,
       week_start: weekStart,
+      transport_mode: form.transportMode,
     });
 
     if (error) return showToast("Erro ao guardar viagem.", "error");
@@ -256,7 +259,8 @@ export default function App() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12 }}>
             {WEEK_DAYS.map((day, idx) => {
               const list = trips[day] || [];
-              const tr   = transport(list.length);
+              const carroList = list.filter(t => t.transportMode === "carro");
+              const tr   = transport(carroList.length);
               return (
                 <div key={day} style={{ background: "#11141f", borderRadius: 16, border: "1px solid #181b28", display: "flex", flexDirection: "column" }}>
                   <div style={{ padding: "13px 14px 9px", borderBottom: "1px solid #181b28", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -279,7 +283,9 @@ export default function App() {
                           <Avatar name={t.name} size={26} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-                            <div style={{ fontSize: 10, color: "#3d4460" }}>📍 {t.zone} · 🕐 {t.departTime}</div>
+                            <div style={{ fontSize: 10, color: "#3d4460" }}>
+                              {t.transportMode === "carro" ? "🚗" : "🚂"} 📍 {t.zone} · 🕐 {t.departTime}
+                            </div>
                           </div>
                           <button onClick={e => { e.stopPropagation(); removeTrip(day, t.id); }} style={{ background: "none", border: "none", color: "#ef444450", cursor: "pointer", fontSize: 16, padding: 0 }}>×</button>
                         </div>
@@ -301,15 +307,15 @@ export default function App() {
                       </div>
                     ))}
 
-                    {list.length > 0 && list.length < 3 && (
+                    {carroList.length > 0 && carroList.length < 3 && (
                       <div style={{ margin: "4px 0 8px" }}>
                         <div style={{ display: "flex", gap: 3 }}>
-                          {[0,1,2].map(i => <div key={i} style={{ flex: 1, height: 3, borderRadius: 3, background: i < list.length ? "#f59e0b" : "#1e2235" }} />)}
+                          {[0,1,2].map(i => <div key={i} style={{ flex: 1, height: 3, borderRadius: 3, background: i < carroList.length ? "#f59e0b" : "#1e2235" }} />)}
                         </div>
-                        <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 3 }}>Faltam {3 - list.length} para carro</div>
+                        <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 3 }}>Faltam {3 - carroList.length} para carro</div>
                       </div>
                     )}
-                    {list.length >= 3 && <div style={{ fontSize: 10, color: "#22c55e", margin: "4px 0 8px", fontWeight: 700 }}>✓ Podem ir de carro!</div>}
+                    {carroList.length >= 3 && <div style={{ fontSize: 10, color: "#22c55e", margin: "4px 0 8px", fontWeight: 700 }}>✓ Podem ir de carro!</div>}
                   </div>
 
                   <div style={{ padding: "0 10px 12px" }}>
@@ -369,11 +375,24 @@ export default function App() {
             <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 2 }}>Registar Viagem</div>
             <div style={{ fontSize: 13, color: "#3d4460", marginBottom: 22 }}>Semana de {monday.toLocaleDateString("pt-PT", { day: "2-digit", month: "long" })}</div>
 
-            {(trips[modal] || []).length > 0 && (
+            <Label>TRANSPORTE</Label>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              {[["carro","🚗 Carro","#22c55e"],["comboio","🚂 Comboio","#f59e0b"]].map(([val, label, color]) => (
+                <button key={val} onClick={() => f("transportMode", val)} style={{
+                  flex: 1, padding: "11px 14px", borderRadius: 10, border: "1px solid",
+                  borderColor: form.transportMode === val ? color : "#1e2235",
+                  background: form.transportMode === val ? color + "18" : "#161928",
+                  color: form.transportMode === val ? color : "#475569",
+                  fontWeight: 700, fontSize: 13, cursor: "pointer",
+                }}>{label}</button>
+              ))}
+            </div>
+
+            {form.transportMode === "carro" && (trips[modal] || []).filter(t => t.transportMode === "carro").length > 0 && (
               <div style={{ marginBottom: 22 }}>
                 <Label>JUNTAR A VIAGEM EXISTENTE</Label>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {(trips[modal] || []).map(t => (
+                  {(trips[modal] || []).filter(t => t.transportMode === "carro").map(t => (
                     <button key={t.id} onClick={() => setForm(p => ({
                       ...p,
                       departDay: t.departDay,
