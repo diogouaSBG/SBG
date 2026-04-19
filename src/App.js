@@ -48,6 +48,7 @@ const emptyForm = (day = "") => ({
   portoType: "holiday",
   portoOther: "",
   transportMode: "carro",
+  parentId: null,
 });
 
 const getPortoLabel = (form) => {
@@ -148,6 +149,7 @@ export default function App() {
           portoOther: row.porto_other,
           portoLocation: row.porto_location,
           transportMode: row.transport_mode || "carro",
+          parentId: row.parent_id || null,
         });
       });
       setTrips(grouped);
@@ -186,6 +188,7 @@ export default function App() {
       porto_location: portoLocation,
       week_start: weekStart,
       transport_mode: form.transportMode,
+      parent_id: form.parentId || null,
     });
 
     if (error) return showToast("Erro ao guardar viagem.", "error");
@@ -273,39 +276,58 @@ export default function App() {
 
                   <div style={{ flex: 1, padding: "10px 10px 4px" }}>
                     {list.length === 0 && <div style={{ fontSize: 11, color: "#1e2235", textAlign: "center", padding: "14px 0", fontStyle: "italic" }}>Ninguém ainda</div>}
-                    {list.map(t => (
-                      <div key={t.id} style={{ marginBottom: 6 }}>
-                        <div onClick={() => setExpanded(expanded === t.id ? null : t.id)} style={{
-                          display: "flex", alignItems: "center", gap: 7, background: "#191d2e", borderRadius: 10,
-                          padding: "8px 10px", cursor: "pointer",
-                          border: `1px solid ${expanded === t.id ? "#6366f150" : "transparent"}`,
-                        }}>
-                          <Avatar name={t.name} size={26} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-                            <div style={{ fontSize: 10, color: "#3d4460" }}>
-                              {t.transportMode === "carro" ? "🚗" : "🚂"} 📍 {t.zone} · 🕐 {t.departTime}
-                            </div>
-                          </div>
-                          <button onClick={e => { e.stopPropagation(); removeTrip(day, t.id); }} style={{ background: "none", border: "none", color: "#ef444450", cursor: "pointer", fontSize: 16, padding: 0 }}>×</button>
-                        </div>
-                        {expanded === t.id && (
-                          <div style={{ background: "#13172a", borderRadius: "0 0 10px 10px", padding: "10px 12px", border: "1px solid #6366f130", borderTop: "none" }}>
-                            {[
-                              ["Partida Lisboa",  `${t.departDay} às ${t.departTime}`],
-                              ["Regresso Porto",  `${t.returnDay} às ${t.returnTime}`],
-                              ["Noites no Porto", `${t.nights} noite${t.nights !== 1 ? "s" : ""}`, "#a78bfa"],
-                              ["Hotel",           t.portoLocation, "#f59e0b"],
-                            ].map(([label, val, col]) => (
-                              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 11 }}>
-                                <span style={{ color: "#3d4460" }}>{label}</span>
-                                <span style={{ fontWeight: 700, color: col || "#dde1f0" }}>{val}</span>
+                    {(() => {
+                      const roots = list.filter(t => !t.parentId);
+                      const byParent = {};
+                      list.filter(t => t.parentId).forEach(t => {
+                        if (!byParent[t.parentId]) byParent[t.parentId] = [];
+                        byParent[t.parentId].push(t);
+                      });
+                      const TripCard = ({ t, isChild }) => (
+                        <div style={{ marginBottom: isChild ? 3 : 6 }}>
+                          <div onClick={() => setExpanded(expanded === t.id ? null : t.id)} style={{
+                            display: "flex", alignItems: "center", gap: 7,
+                            background: isChild ? "#13172a" : "#191d2e",
+                            borderRadius: 10, padding: "8px 10px", cursor: "pointer",
+                            border: `1px solid ${expanded === t.id ? "#6366f150" : "transparent"}`,
+                          }}>
+                            <Avatar name={t.name} size={isChild ? 22 : 26} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: isChild ? 11 : 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+                              <div style={{ fontSize: 10, color: "#3d4460" }}>
+                                {t.transportMode === "carro" ? "🚗" : "🚂"} 📍 {t.zone} · 🕐 {t.departTime}
                               </div>
-                            ))}
+                            </div>
+                            <button onClick={e => { e.stopPropagation(); removeTrip(day, t.id); }} style={{ background: "none", border: "none", color: "#ef444450", cursor: "pointer", fontSize: 16, padding: 0 }}>×</button>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {expanded === t.id && (
+                            <div style={{ background: "#13172a", borderRadius: "0 0 10px 10px", padding: "10px 12px", border: "1px solid #6366f130", borderTop: "none" }}>
+                              {[
+                                ["Partida Lisboa",  `${t.departDay} às ${t.departTime}`],
+                                ["Regresso Porto",  `${t.returnDay} às ${t.returnTime}`],
+                                ["Noites no Porto", `${t.nights} noite${t.nights !== 1 ? "s" : ""}`, "#a78bfa"],
+                                ["Hotel",           t.portoLocation, "#f59e0b"],
+                              ].map(([label, val, col]) => (
+                                <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 11 }}>
+                                  <span style={{ color: "#3d4460" }}>{label}</span>
+                                  <span style={{ fontWeight: 700, color: col || "#dde1f0" }}>{val}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                      return roots.map(root => (
+                        <div key={root.id} style={{ marginBottom: 8 }}>
+                          <TripCard t={root} isChild={false} />
+                          {(byParent[root.id] || []).map(child => (
+                            <div key={child.id} style={{ marginLeft: 10, paddingLeft: 8, borderLeft: "2px solid #6366f130" }}>
+                              <TripCard t={child} isChild={true} />
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
 
                     {carroList.length > 0 && carroList.length < 3 && (
                       <div style={{ margin: "4px 0 8px" }}>
@@ -388,11 +410,11 @@ export default function App() {
               ))}
             </div>
 
-            {form.transportMode === "carro" && (trips[modal] || []).filter(t => t.transportMode === "carro").length > 0 && (
+            {form.transportMode === "carro" && (trips[modal] || []).filter(t => t.transportMode === "carro" && !t.parentId).length > 0 && (
               <div style={{ marginBottom: 22 }}>
                 <Label>JUNTAR A VIAGEM EXISTENTE</Label>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {(trips[modal] || []).filter(t => t.transportMode === "carro").map(t => (
+                  {(trips[modal] || []).filter(t => t.transportMode === "carro" && !t.parentId).map(t => (
                     <button key={t.id} onClick={() => setForm(p => ({
                       ...p,
                       departDay: t.departDay,
@@ -401,6 +423,7 @@ export default function App() {
                       returnTime: t.returnTime,
                       portoType: t.portoType,
                       portoOther: t.portoOther,
+                      parentId: t.id,
                     }))} style={{
                       display: "flex", alignItems: "center", gap: 10,
                       background: form.departTime === t.departTime && form.returnDay === t.returnDay ? "#6366f118" : "#161928",
