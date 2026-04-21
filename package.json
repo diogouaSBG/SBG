@@ -4,10 +4,13 @@
   "description": "INETUM - Coordenação de viagens Lisboa ↔ Porto",
   "private": true,
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "@microsoft/teams-js": "^2.22.0",
     "@supabase/supabase-js": "^2.49.4",
+    "ajv": "^8.18.0",
+    "leaflet": "^1.9.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
     "react-scripts": "5.0.1"
   },
   "scripts": {
@@ -16,8 +19,16 @@
     "test": "react-scripts test"
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "homepage": "."
 }
