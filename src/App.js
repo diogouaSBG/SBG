@@ -82,9 +82,12 @@ function PlaygroundCard({ p, selected, onClick }) {
           {p.name}
         </span>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          {fmtDist(p.distance)}
+          {p.distance != null ? fmtDist(p.distance) : '–'}
         </span>
       </div>
+      {p.address && (
+        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{p.address}</div>
+      )}
       {chips.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
           {chips.map(c => (
@@ -103,7 +106,7 @@ function PlaygroundCard({ p, selected, onClick }) {
 
 function DetailPanel({ p, onClose }) {
   const rows = [
-    ['Distância', fmtDist(p.distance)],
+    ['Distância', p.distance != null ? fmtDist(p.distance) : '–'],
     ['Piso', SURFACES[p.surface] || p.surface || '–'],
     ['Iluminação', p.lit ? 'Sim ✓' : 'Não'],
     ['Vedado', p.fence ? 'Sim ✓' : 'Não'],
@@ -126,7 +129,7 @@ function DetailPanel({ p, onClose }) {
         <div>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>🛝 {p.name}</h2>
           <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>
-            {p.lat.toFixed(5)}, {p.lon.toFixed(5)}
+            {p.address || `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`}
           </p>
         </div>
         <button
@@ -186,17 +189,18 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   const { location, error: locErr, loading: locLoading, request, setManual } = useLocation();
-  const { playgrounds, loading: pgLoading, error: pgErr } = usePlaygrounds(location, radius);
+  const { playgrounds, loading: pgLoading, error: pgErr } = usePlaygrounds(location);
 
   const filtered = useMemo(() => {
     return playgrounds.filter(p => {
+      if (p.distance != null && p.distance > radius) return false;
       if (filterLit && !p.lit) return false;
       if (filterFenced && !p.fence) return false;
       if (filterWheelchair && !p.wheelchair) return false;
       if (filterEquip.length > 0 && !filterEquip.every(eq => p.equipment.includes(eq))) return false;
       return true;
     });
-  }, [playgrounds, filterLit, filterFenced, filterWheelchair, filterEquip]);
+  }, [playgrounds, radius, filterLit, filterFenced, filterWheelchair, filterEquip]);
 
   const toggleEquip = (key) =>
     setFilterEquip(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);

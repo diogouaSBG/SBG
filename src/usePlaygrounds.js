@@ -1,74 +1,69 @@
 import { useState, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
-
-export function usePlaygrounds(location, radius) {
+export function usePlaygrounds(location) {
   const [playgrounds, setPlaygrounds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    if (!location) return;
     setLoading(true);
     setError(null);
     try {
-      const query = `[out:json][timeout:30];
-(
-  node["leisure"="playground"](around:${radius},${location.lat},${location.lon});
-  way["leisure"="playground"](around:${radius},${location.lat},${location.lon});
-  relation["leisure"="playground"](around:${radius},${location.lat},${location.lon});
-);
-out center body;`;
-      const res = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-      });
+      const res = await fetch('/parques.xlsx');
       if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
-      const data = await res.json();
-      setPlaygrounds(parse(data.elements, location));
+      const buffer = await res.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      setPlaygrounds(parse(rows, location));
     } catch (e) {
       setError('Não foi possível carregar os parques: ' + e.message);
     } finally {
       setLoading(false);
     }
-  }, [location, radius]);
+  }, [location]);
 
   useEffect(() => { load(); }, [load]);
 
   return { playgrounds, loading, error, refresh: load };
 }
 
-function parse(elements, userLoc) {
-  return elements
-    .map((el) => {
-      const lat = el.lat ?? el.center?.lat;
-      const lon = el.lon ?? el.center?.lon;
-      if (lat == null || lon == null) return null;
-      const tags = el.tags || {};
+function parse(rows, userLoc) {
+  return rows
+    .map((row) => {
+      const lat = parseFloat(row['Latitude']);
+      const lon = parseFloat(row['Longitude']);
+      if (isNaN(lat) || isNaN(lon)) return null;
+
+      const yn = (v) => String(v || '').trim().toLowerCase() === 'sim';
+
       return {
-        id: `${el.type}-${el.id}`,
+        id: `${lat}-${lon}`,
         lat,
         lon,
-        name: tags.name || 'Parque Infantil',
-        surface: tags.surface || null,
-        lit: tags.lit === 'yes',
-        wheelchair: tags.wheelchair === 'yes',
-        fence: tags.fence === 'yes' || tags.barrier === 'fence',
-        minAge: tags.min_age ? Number(tags.min_age) : null,
-        maxAge: tags.max_age ? Number(tags.max_age) : null,
-        openingHours: tags.opening_hours || null,
-        equipment: extractEquipment(tags),
-        distance: haversine(userLoc.lat, userLoc.lon, lat, lon),
+        name: String(row['Nome'] || 'Parque Infantil').trim(),
+        address: String(row['Morada'] || '').trim(),
+        surface: String(row['Piso'] || '').trim() || null,
+        lit: yn(row['Iluminado']),
+        wheelchair: yn(row['Acessivel']),
+        fence: yn(row['Vedado']),
+        minAge: row['Idade_Min'] != null ? Number(row['Idade_Min']) : null,
+        maxAge: row['Idade_Max'] != null ? Number(row['Idade_Max']) : null,
+        openingHours: String(row['Horario'] || '').trim() || null,
+        equipment: [
+          yn(row['Baloicos']) && 'swing',
+          yn(row['Escorrega']) && 'slide',
+          yn(row['Escalada']) && 'climbingframe',
+          yn(row['Areia']) && 'sandpit',
+          yn(row['Balance']) && 'seesaw',
+          yn(row['Carrossel']) && 'merry_go_round',
+        ].filter(Boolean),
+        distance: userLoc ? haversine(userLoc.lat, userLoc.lon, lat, lon) : null,
       };
     })
     .filter(Boolean)
-    .sort((a, b) => a.distance - b.distance);
-}
-
-function extractEquipment(tags) {
-  const keys = ['swing', 'slide', 'climbingframe', 'sandpit', 'seesaw', 'merry_go_round', 'springy', 'water'];
-  return keys.filter((k) => tags[`playground:${k}`]);
+    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
